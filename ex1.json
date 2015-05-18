@@ -1,0 +1,15 @@
+{
+    init: "init",
+    nodes: 
+    [["init","init"],
+     ["q0","q0"],
+     ["q1","q1"]]
+    transitions:
+    [{f:"init",t:"q0",i:undefined},
+     {f:"q0",t:"q0",i:"0"},
+     {f:"q0",t:"q1",i:"1"},
+     {f:"q1",t:"q1",i:"1"},
+     {f:"q1","q0","0"]],
+    accepting:
+    ["q1"]
+}

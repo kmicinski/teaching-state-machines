@@ -1,0 +1,35 @@
+<html>
+<head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+<script src="http://cytoscape.github.io/cytoscape.js/api/cytoscape.js-latest/cytoscape.min.js"></script>
+<script src="statemachines.js"></script>
+
+</head>
+<body>
+
+<script>
+  var model = 
+  {
+    init: "q0",
+    nodes: 
+    [["q0","q0"],
+     ["q1","q1"]],
+    transitions:
+    [{f:"q0",t:"q0",i:"0"},
+     {f:"q0",t:"q1",i:"1"},
+     {f:"q1",t:"q1",i:"1"},
+     {f:"q1",t:"q0",i:"0"}],
+    accepting:
+    ["q1"]
+  };
+
+  $(function() {
+    var fsm = $('.fsm');
+    createFSM({element:fsm,json:model});
+  });
+</script>
+
+<div class="fsm"></div>
+
+</body>
+</html>
