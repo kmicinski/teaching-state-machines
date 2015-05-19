@@ -1,0 +1,7 @@
+.editingText {
+    color: lightgrey;
+}
+
+.selectedText {
+    opacity: .5
+}
