@@ -1,12 +1,15 @@
-var StateMachines = (function() {
-    var m = {};
-    
+var StateMachines = function() {
+    'use strict';
+//    if (typeof(this) !== StateMachines) {
+//        return new StateMachines();
+//    }
+
     // Create a unique div
-    var createUniqueDiv = function() {
+    this.createUniqueDiv = function() {
         var div = $('<div></div>');
         div.id = "div_" + new Date().getTime().toString();
         return div;
-    } 
+    };
     
     /**
      * A model of a finite state machine.  This tracks stateful
@@ -14,7 +17,7 @@ var StateMachines = (function() {
      * fsm - The FSM to work with
      * workingString - The string we're working on
      */
-    m.FSMModel = function(fsm,workingString) {
+    this.FSMModel = function(fsm,workingString) {
         this.fsm = fsm;
         this.currentState = fsm.init;
         this.workingString = workingString || "";
@@ -28,44 +31,55 @@ var StateMachines = (function() {
         this.POINTER_AT = 0;
         this.TRANSITION = 1;
         this.SELECT_NODE = 2;
+        this.FLASH_INVALID = 3;
         
         this.setWorkingIndex = function(index) {
             this.workingIndex = index;
-        }
+        };
         
+        this.getAcceptingStates = function() {
+            return this.fsm.accepting;
+        };
+
         this.reset = function() {
             this.currentState = fsm.init;
             this.setWorkingIndex(0);
-            $.each(this.changeListeners, function(idx,listener) {
+            $.each(this.changeListeners, $.proxy(function(idx,listener) {
                 listener({ev:this.POINTER_AT,index:0});
-            });
-        }
+            },this));
+        };
         
         // Call the listeners to inform them that a new node has been
         // selected
         this.selectNode = function(node) {
-            this.currentState = fsm.init;
-            $.each(this.changeListeners, function(idx,listener) {
+            this.currentState = node;
+            $.each(this.changeListeners, $.proxy(function(idx,listener) {
                 listener({ev:this.SELECT_NODE,node:node});
-            });
-        }
+            },this));
+        };
         
         this.advanceIndex = function() {
             this.workingIndex += 1;
-            $.each(this.changeListeners, function(idx,listener) {
+            $.each(this.changeListeners, $.proxy(function(idx,listener) {
                 listener({ev:this.POINTER_AT,index:this.workingIndex});
-            });
-        }
+            }, this));
+        };
 
         // Test to see if a character is in the alphabet of the automaton
         this.isCharInAlphabet = function(c) {
-            if (/[a-zA-Z0-9-_ ]/.test(c)) {
+            if (/[a-zA-Z0-9]/.test(c)) {
                 return true;
             } else {
                 return false;
             }
-        } 
+        };
         
+        this.flashInvalid = function() {
+            $.each(this.changeListeners, $.proxy(function(idx,listener) {
+                listener({ev:this.FLASH_INVALID});
+            }, this));
+        };
+
         // Set the working string for the model, returns false if
         // characters inside str are outside of the alphabet.
         this.setWorkingString = function(str) {
@@ -77,7 +91,7 @@ var StateMachines = (function() {
             } else {
                 return false;
             }
-        }
+        };
         
         // Add a single character to the working string.  Return false
         // if character not in alphabet.
@@ -89,7 +103,7 @@ var StateMachines = (function() {
             } else {
                 return false;
             }
-        }
+        };
         
         // Take a step in the state machine.
         this.input = function(arg) {
@@ -101,32 +115,35 @@ var StateMachines = (function() {
             var nextCharacter = this.workingString[this.workingIndex];
             var nextStates = [];
             if (arg.toState) {
-
                 nextStates = this.fsm.transitions.filter(function(e,i) {
-                    return (e.f == currentState
-                            && e.t == arg.toState);
-                })
+                    return (e.f == currentState &&
+                            e.t == arg.toState);
+                });
             } else if (arg.input) {
                 nextStates = this.fsm.transitions.filter(function(e,i) {
-                    return (e.f == currentState
-                            && e.i == arg.input);
-                })
+                    return (e.f == currentState &&
+                            e.i == arg.input);
+                });
             }
+            
+            nextStates = nextStates.filter(function(e,i) {
+                return (e.i === nextCharacter);
+            });
             
             var gotoState = nextStates[0];
             // No possible node to go to 
-            if (!gotoState) { return; }
+            if (!gotoState) { this.flashInvalid(); return; }
             
             // Call back to the view to update state
             this.advanceIndex();
             this.selectNode(gotoState.t);
-        }
+        };
         
         this.addTransitionListener =
             function(listener) { this.changeListeners.push(listener); };
-    }
+    };
 
-    var FSM = function(fsm) {
+    this.FSM = function(fsm) {
         for(var k in fsm) this[k]=fsm[k];
         // Add aliases for from, to, and input
         $.each(fsm.transitions,function(e) {
@@ -134,7 +151,7 @@ var StateMachines = (function() {
             e.to = e.t;
             e.input = e.i;
         });
-    }
+    };
 
     /**
      * Thew view for a finite state machine, based on the model above.
@@ -148,18 +165,18 @@ var StateMachines = (function() {
      * textArea - A textArea that will contain text being worked on.
      * model - A FSMModel object
      */
-    m.FSMView = function(viewScope,textArea,resetButton,model) {
+    this.FSMView = function(viewScope,textArea,resetButton,model) {
 
         // Convert our JSON representation to Cytoscape's
         this.getCytoElemtents = function () {
             var obj = {nodes:[],edges:[]};
             $.each(model.fsm.nodes, function(i,node) {
-                obj.nodes.push({ data: { id: node[0], name: node[1] } })});
+                obj.nodes.push({ data: { id: node[0], name: node[1] } });});
             $.each(model.fsm.transitions, function(i,t) {
                 obj.edges.push({ data:
-                                 { source: t.f, target: t.t, label:t.i } })});
+                                 { source: t.f, target: t.t, label:t.i } });});
             return obj;
-        }
+        };
 
         // Update the text area to point at the proper region
         this.updateTextArea = function(index) {
@@ -179,34 +196,35 @@ var StateMachines = (function() {
                 .text(model.workingString.slice(index+1));
             textArea.empty();
             textArea.append([beginning,charAt,end]);
-        }
+        };
 
         // Add callbacks from model
-        model.addTransitionListener((function(closure) { return (function(event) {
+        model.addTransitionListener($.proxy(function(event) {
             switch (event.ev) {
-            case m.FSMModel.POINTER_AT:
-                closure.updateTextArea(event.index);
+            // Refactor so doesn't refer to model
+            case model.POINTER_AT:
+                this.updateTextArea(event.index);
                 break;
-            case m.FSMModel.RESET:
+            case model.RESET:
             }
-        }) })(this));
+        },this));
 
         // Manipulating the edit text box
         this.setEditboxPlain = function() {
             textArea.removeClass("editingText");
             textArea.removeClass("selectedText");
-        }
+        };
         
         this.setEditboxEditing = function() {
             textArea.addClass("editingText");
             textArea.removeClass("selectedText");
-        }
+        };
         
         this.setEditboxSelected = function() {
             textArea.addClass("selectedText");
             textArea.removeClass("editingText");
-        }
-
+        };
+        
         resetButton.click(function() {
             return;
         });
@@ -216,14 +234,24 @@ var StateMachines = (function() {
         // machine.
         this.finishEditboxInput = function() {
             this.setEditboxPlain();
-        }
+        };
 
         // Constructor code
         this.flashInvalid = function() {
             var col = textArea.css("color");
             var opa = textArea.css("opacity");
-            textArea.animate({color:"red",opacity:"1.0"},100,function() { textArea.animate({color:col,opacity:opa},100) });
-        }
+            textArea.animate({color:"red",opacity:"1.0"},100,function() { textArea.animate({color:col,opacity:opa},100);});
+        };
+
+        model.addTransitionListener($.proxy(function(event) {
+            switch (event.ev) {
+            case model.FLASH_INVALID:
+                this.flashInvalid();
+                break;
+            }
+        },this));
+        
+
         textArea.html('<div tabindex="1"></div>');
         textArea.keyup((function(closure) { return (function(ev) {
             var button = String.fromCharCode(ev.keyCode);
@@ -248,7 +276,7 @@ var StateMachines = (function() {
                     closure.flashInvalid();
                 }
             }
-        }) }(this))).click((function(closure) { return (function() {
+        });}(this))).click((function(closure) { return (function() {
             if (textArea.hasClass("selectedText")) {
                 // Selected but not edited, unselect
                 closure.setEditboxPlain();
@@ -260,7 +288,7 @@ var StateMachines = (function() {
                 closure.setEditboxSelected();
             }
             textArea.focus();
-        }) })(this));
+        });})(this));
         
         // Initialize the viewscope
         viewScope.cytoscape({
@@ -279,13 +307,13 @@ var StateMachines = (function() {
                     'target-arrow-shape': 'triangle',
                     'content': 'data(label)'
                 })
-                .selector('.accepting')
-                .css({
-                    'background-color': 'lightgreen',
-                })
                 .selector('.selected')
                 .css({
                     'background-color': 'lightblue',
+                })
+                .selector('.accepting')
+                .css({
+                    'background-color': 'lightgreen',
                 })
                 .selector('.accepting')
                 .css({
@@ -324,24 +352,28 @@ var StateMachines = (function() {
                 });
                 
                 var selectNode = function(nodeName) {
-                    cy.elements().unselectify();
-                    cy.elements("node#"+m.fsm.init).addClass('selected');
-                }
-
-                m.addTransitionListener((function(closure) { return (function(event) {
+                    //cy.elements().unselectify();
+                    cy.elements().removeClass('selected').removeClass('accepting');
+                    
+                    // Highlight nodes as accepting unless they are
+                    // the highlighted ones
+                    model.getAcceptingStates().forEach(function(node) {
+                        if (node !== nodeName) {
+                            cy.elements("node#"+node).addClass('accepting');
+                        }});
+                    cy.elements("node#"+nodeName).addClass('selected');
+                };
+                
+                m.addTransitionListener($.proxy(function(event) {
                     switch (event.ev) {
-                    case m.FSMModel.POINTER_AT:
+                    case m.POINTER_AT:
                         // Do nothing here, handled elsewhere
                         break;
-                    case m.FSMModel.RESET:
-                        // Select the first node
-                        selectNode(m.fsm.init);
-                        break;
-                    case m.FSMModel.SELECT_NODE:
+                    case m.SELECT_NODE:
                         // Transition to highlight a new node
                         selectNode(event.node);
                     }
-                }) })(this));
+                },this));
                 
                 cy.on('tap', 'node', function(e){
                     var node = e.cyTarget; 
@@ -359,7 +391,7 @@ var StateMachines = (function() {
 
         // Reset the model
         model.reset();
-    }
+    },
 
     /**
      * Create a finite state machine at the given element.
@@ -367,12 +399,12 @@ var StateMachines = (function() {
      * arguments.file The JSON file to load
      * arguments.json Raw JSON for the FSM
      */
-    m.createFSM = function(arguments) {
+    this.createFSM = function(args) {
         var linearBox = $('<div class="fsmContainer"></div>').css({"width":"400px","padding":"5px"});
-        arguments.element.append(linearBox);
+        args.element.append(linearBox);
         var topContentBox = $('<div></div>');
         
-        var workStringBox = $('<div style="display:inline;" tabindex="-1"></p>')
+        var workStringBox = $('<div style="display:inline;" tabindex="-1"></p>');
         var resetButton = $('<button>Reset</button>').css(
             {"display":"inline","float":"right","margin":"5px"})
             .addClass("btn")
@@ -383,10 +415,8 @@ var StateMachines = (function() {
         topContentBox.append(resetButton);
         linearBox.append(topContentBox);
         linearBox.append(viewScopeDiv);
-
-        var model = new m.FSMModel(arguments.json,"10101");
-        var view = new m.FSMView(viewScopeDiv,workStringBox,resetButton,model);
-    }
-    
-    return m;
-}());
+        
+        var model = new this.FSMModel(args.json,"10101");
+        var view = new this.FSMView(viewScopeDiv,workStringBox,resetButton,model);
+    };
+};
