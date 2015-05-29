@@ -1,5 +1,7 @@
 # StateMachines.js
 
+Open `index.html` for an example.
+
 A JavaScript library for developing, animating, and teaching finite
 state machines.  The library builds atop Cytoscape.js to do rendering
 for the underlying graph structure.
@@ -10,8 +12,8 @@ To set up a state machine, you get a dom element, a JSON file (or raw
 JSON), and call createFSM with the specified element:
 
     var cy = createFSM({
-      container: document.getElementById('myfsm'),
-      file: 
+      element: $('.fsm');,
+      json: model
       }
     });
 
@@ -20,15 +22,15 @@ JSON), and call createFSM with the specified element:
 CreateFSM also takes multiple options as its input:
 
     - 
-    - 
+    - etc... more stuff here..
 
 ## Default key input buttons
 
   - `<enter>` while in editing mode for match string (the text being
     matched against, at the top right) sets the match string and
     resets the machine.
-  - `n` Adds a new node to the graph
-  - 
+  - characers move the state
+  - `n` Adds a new node to the graph (**not implemented**)
 
 ## Creating a new state machine
 
