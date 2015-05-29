@@ -5,6 +5,8 @@
 var StateMachine = function(name) {
     'use strict';
     
+    var cy;
+
 //    if (typeof(this) !== StateMachine) {
 //        return new StateMachine(name);
 //    }
@@ -250,6 +252,7 @@ var StateMachine = function(name) {
      */
     this.FSMView = function(viewScope,textArea,resetButton,model) {
         var hasMultipleChoices = false;
+        var nextNodes = [];
 
         /**
          * Get the underlying model back.  Useful for if the user can
@@ -295,10 +298,69 @@ var StateMachine = function(name) {
             case model.POINTER_AT:
                 updateTextArea(event.index);
                 break;
-            case model.RESET:
             }
         },this));
 
+        // 
+        // Stuff for multiple next node choices
+        // 
+
+        var onClickResolveNodes = function(ev) {
+            var node = ev.cyTarget;
+            var nodeName = node.id();
+
+            if ($.inArray(nodeName,nextNodes) > -1) {
+                // Reset the state
+                hasMultipleChoices = false;
+                nextNodes = [];
+
+                // Select the node, which will subsequently call back
+                // to the view to set the appropriate flags
+                model.selectNode(nodeName);
+                
+                // Dangerously advancing index here
+                model.advanceIndex();
+
+                // Restore default tap callback
+                cy.on('tap', 'node', $.proxy(function(e){
+                    defaultOnTopHandler(e);
+                },this));
+            } else {
+                // Do nothing
+            }
+        };
+
+        /**
+         * Called when the user selected a next node, but there were
+         * multiple possibilities.  Put the view in a state so that
+         * only the next possible nodes are highlighted, and
+         * clickable.
+         */
+        var setMultipleChoices = function(nodes) {
+            nextNodes = nodes;
+            var hasMultipleChoices = true;
+            
+            cy.elements('node').addClass('faded');
+            
+            nodes.forEach(function(e) {
+                cy.elements('node#'+e).removeClass('faded').addClass('nextNode');
+            });
+            
+            // Set the tap callback
+            cy.on('tap', 'node', $.proxy(function(e){
+                onClickResolveNodes(e);
+            },this));
+        };
+
+        model.addTransitionListener($.proxy(function(ev) {
+            switch (ev.ev) {
+            // Refactor so doesn't refer to model
+            case model.MULTIPLE_CHOICES:
+                setMultipleChoices(ev.choices);
+                break;
+            }
+        }),this);
+        
         // 
         // Edit box utilities
         // 
@@ -383,6 +445,17 @@ var StateMachine = function(name) {
         });})(this));
         
         // 
+        // Default handler for on tap nodes
+        // 
+        var defaultOnTopHandler = function(e) {
+            // Do nothing... 
+            // var node = e.cyTarget; 
+            // var neighborhood = node.neighborhood().add(node);
+            // cy.elements().addClass('faded');
+            // neighborhood.removeClass('faded');
+        };
+
+        // 
         // Initialize the Cytoscape view with the necessary stuff
         // 
         viewScope.cytoscape({
@@ -416,7 +489,12 @@ var StateMachine = function(name) {
                 .selector('.faded')
                 .css({
                     'opacity': '.5'
+                })
+                .selector('.nextNode')
+                .css({
+                    'background-color': 'lightpurple'
                 }),
+
             
             elements: getCytoElemtents(),
             layout: {
@@ -426,7 +504,7 @@ var StateMachine = function(name) {
             
             // on graph initial layout done (could be async depending on layout...)
             ready: (((function(viewScopeDiv,m) { return (function() {
-                window.cy = this;
+                cy = this;
                 
                 // giddy up...
                 cy.elements().unselectify();
@@ -444,10 +522,10 @@ var StateMachine = function(name) {
                     // the appropriate thing to set the current node.
                     model.input({input:button});
                 });
-                
+               
+                // Redraw graph
                 var selectNode = function(nodeName) {
-                    //cy.elements().unselectify();
-                    cy.elements().removeClass('selected').removeClass('accepting');
+                    cy.elements().removeClass('selected').removeClass('accepting').removeClass('faded');
                     
                     // Highlight nodes as accepting unless they are
                     // the highlighted ones
@@ -460,9 +538,6 @@ var StateMachine = function(name) {
                 
                 m.addTransitionListener($.proxy(function(event) {
                     switch (event.ev) {
-                    case m.POINTER_AT:
-                        // Do nothing here, handled elsewhere
-                        break;
                     case m.SELECT_NODE:
                         // Transition to highlight a new node
                         selectNode(event.node);
@@ -470,16 +545,7 @@ var StateMachine = function(name) {
                 },this));
                 
                 cy.on('tap', 'node', function(e){
-                    var node = e.cyTarget; 
-                    var neighborhood = node.neighborhood().add(node);
-                    cy.elements().addClass('faded');
-                    neighborhood.removeClass('faded');
-                });
-                cy.on('tap', function(e){
-                    viewScopeDiv.focus();
-                    if( e.cyTarget === cy ){
-                        cy.elements().removeClass('faded');
-                    }
+                    defaultOnTopHandler(e);
                 });
             }); })(viewScope,model)))});
 
