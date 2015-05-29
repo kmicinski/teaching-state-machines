@@ -19,26 +19,30 @@
 <script>
   var model = 
   {
-    init: "q0",
-    nodes: 
-    [["q0","q0"],
-     ["q1","q1"]],
-    transitions:
-    [{f:"q0",t:"q0",i:"0"},
-     {f:"q0",t:"q1",i:"1"},
-     {f:"q1",t:"q1",i:"1"},
-     {f:"q1",t:"q0",i:"0"}],
-    accepting:
-    ["q1"]
+  init: "q0",
+  nodes: 
+  [["q0","q0"],
+  ["q1","q1"],
+  ["q2","q2"]],
+  transitions:
+  [{f:"q0",t:"q0",i:"0"},
+  {f:"q0",t:"q1",i:"1"},
+  {f:"q1",t:"q1",i:"1"},
+  {f:"q1",t:"q0",i:"0"},
+  {f:"q0",t:"q2",i:"1"},
+  {f:"q2",t:"q2",i:"1"},
+  {f:"q2",t:"q0",i:"0"}],
+  accepting:
+  ["q1"]
   };
 
   $(function() {
     var fsm = $('.fsm');
-    (new StateMachines()).createFSM({element:fsm,json:model});
+    (new StateMachine('fsm1')).createFSM({element:fsm,json:model});
   });
 </script>
 
-<div class="fsm"></div>
+<div class="fsm" id="fsm1"></div>
 
 </body>
 </html>
