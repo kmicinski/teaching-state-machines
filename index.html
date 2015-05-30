@@ -36,9 +36,24 @@
   ["q1"]
   };
 
+  var model2 = 
+  {
+  init: "q0",
+  nodes: 
+  [["q0","q0"],
+  ["q1","q1"]],
+  transitions:
+  [{f:"q0",t:"q0",i:"0"},
+  {f:"q0",t:"q1",i:"1"},
+  {f:"q1",t:"q1",i:"1"},
+  {f:"q1",t:"q0",i:"0"}],
+  accepting:
+  ["q1"]
+  };
+
   $(function() {
     var fsm = $('.fsm');
-    (new StateMachine('fsm1')).createFSM({element:fsm,json:model});
+    (new StateMachine('fsm1')).createFSM({element:fsm,json:model,editControls:true,playControls:true});
   });
 </script>
 
